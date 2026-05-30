@@ -18,6 +18,11 @@
       --border:rgba(255,255,255,0.08);
       --accent:#7c5cff;
       --accent2:#00d4ff;
+      /* Spacing System as per User Rules */
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 2rem;
     }
 
     body{
@@ -50,8 +55,9 @@
     }
 
     .container{
-      width:min(1180px,92%);
-      margin:auto;
+      width: 90%;
+      max-width: 1200px;
+      margin: auto;
     }
 
     nav{
@@ -190,13 +196,14 @@
     }
 
     .phone{
-      width:340px;
-      height:700px;
-      border-radius:42px;
-      border:1px solid rgba(255,255,255,0.08);
-      background:linear-gradient(180deg,#101014,#080809);
-      padding:18px;
-      overflow:hidden;
+      width: 100%;
+      max-width: 21.25rem;
+      height: 43.75rem;
+      border-radius: 2.625rem;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg,#101014,#080809);
+      padding: 1.125rem;
+      overflow: hidden;
     }
 
     .screen{
@@ -338,10 +345,68 @@
       }
 
       .phone{
-        width:100%;
-        max-width:360px;
-        height:650px;
+        width: 100%;
+        max-width: 22.5rem;
+        height: 40.625rem;
       }
+    }
+
+    /* Waitlist form modifications & loading spinner */
+    .waitlist-box {
+      position: relative;
+    }
+    
+    .waitlist-box button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      min-width: 11rem;
+    }
+
+    .spinner {
+      width: 1.25rem;
+      height: 1.25rem;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #ffffff;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Monochrome alert styling following spacing and padding rules */
+    .waitlist-msg {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      border-radius: 0.75rem;
+      margin-top: var(--space-md) !important;
+      font-size: clamp(0.9rem, 1vw, 1rem);
+      width: 100%;
+      padding: 0.5rem 0.5rem !important; /* Force padding as per User Rules */
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #e4e4e7;
+    }
+    
+    .waitlist-msg.success-msg {
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.05);
+      color: #ffffff;
+    }
+
+    .waitlist-msg.error-msg {
+      border-color: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.02);
+      color: #a1a1aa;
+    }
+    
+    .msg-icon {
+      font-weight: 700;
+      padding-left: 0.5rem;
     }
   </style>
 </head>
@@ -374,9 +439,21 @@
         Vybemint is a next-generation image platform built for creators who care about quality, ownership, aesthetics, and real connection.
       </p>
 
-      <div class="waitlist-box">
-        <input type="email" placeholder="Enter your email address">
-        <button>Get Early Access</button>
+      <form id="waitlist-form" class="waitlist-box">
+        <input type="email" id="waitlist-email" placeholder="Enter your email address" required>
+        <button type="submit" id="waitlist-submit">
+          <span class="submit-text">Get Early Access</span>
+          <span class="spinner" style="display: none;"></span>
+        </button>
+      </form>
+      <!-- Message Containers (Monochrome Theme) -->
+      <div id="waitlist-success" class="waitlist-msg success-msg" style="display: none;">
+        <span class="msg-icon">✓</span>
+        <span class="msg-text">You've been added to the waitlist!</span>
+      </div>
+      <div id="waitlist-error" class="waitlist-msg error-msg" style="display: none;">
+        <span class="msg-icon">✕</span>
+        <span class="msg-text">Something went wrong. Please try again.</span>
       </div>
 
       <div class="stats">
@@ -428,7 +505,86 @@
 
   </section>
 
+  <footer class="footer-wrap" style="margin-top: 5rem !important; border-top: 1px solid rgba(255,255,255,0.08); padding: 2rem 0 !important; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; color: #81818b; font-size: 0.92rem;">
+    <p>&copy; 2026 Vybemint. All rights reserved.</p>
+  </footer>
+
 </div>
 
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('waitlist-form');
+      const emailInput = document.getElementById('waitlist-email');
+      const submitBtn = document.getElementById('waitlist-submit');
+      const submitText = submitBtn.querySelector('.submit-text');
+      const spinner = submitBtn.querySelector('.spinner');
+      const successMsg = document.getElementById('waitlist-success');
+      const errorMsg = document.getElementById('waitlist-error');
+
+      // SheetDB endpoint — stores waitlist submissions
+      const SHEET_URL = "https://sheetdb.io/api/v1/dye5r68mwotdw";
+
+      // Humanize: readable timestamp for the sheet (e.g. 5/30/2026 17:02:52)
+      const getFormattedTimestamp = () => {
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        // Prefix quote forces Google Sheets to display as plain text, not a serial number
+        return `'${now.getMonth()+1}/${now.getDate()}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      };
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        successMsg.style.display = 'none';
+        errorMsg.style.display = 'none';
+
+        const email = emailInput.value.trim();
+        if (!email) return;
+
+        // Show loading state
+        submitBtn.disabled = true;
+        submitText.textContent = "Connecting...";
+        spinner.style.display = 'inline-block';
+
+        try {
+
+          // Duplicate guard — check before inserting
+          const checkResp = await fetch(`${SHEET_URL}/search?Email=${encodeURIComponent(email)}`, { method: 'GET', mode: 'cors' });
+          const checkData = await checkResp.json();
+          if (Array.isArray(checkData) && checkData.length > 0) {
+            errorMsg.querySelector('.msg-text').textContent = "This email is already on our waitlist!";
+            errorMsg.style.display = 'flex';
+            return;
+          }
+
+          // Submit to SheetDB
+          const response = await fetch(SHEET_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: [{ Timestamp: getFormattedTimestamp(), Email: email }] })
+          });
+
+          const result = await response.json();
+
+          if (result.created === 1 || result.status === 'success') {
+            successMsg.querySelector('.msg-text').textContent = "You've been added to the waitlist!";
+            successMsg.style.display = 'flex';
+            form.reset();
+          } else {
+            throw new Error(result.message || "Failed to process request");
+          }
+        } catch (err) {
+          console.error("Submission failed:", err);
+          errorMsg.querySelector('.msg-text').textContent = "Connection failed. Please check your network or try again.";
+          errorMsg.style.display = 'flex';
+        } finally {
+          submitBtn.disabled = false;
+          submitText.textContent = "Get Early Access";
+          spinner.style.display = 'none';
+        }
+      });
+    });
+  </script>
 </body>
 </html>

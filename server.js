@@ -211,6 +211,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Serve separate VybeMint redesign page
+app.get('/vybemint', (req, res) => {
+  res.sendFile(path.join(__dirname, 'vybemint.html'));
+});
+
 // Duplicate check endpoint
 app.get('/api/check', (req, res) => {
   const email = (req.query.email || '').trim().toLowerCase();

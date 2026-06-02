@@ -1,5 +1,4 @@
 # fly.toml configuration for VybeMint
-app = "vybemint"
 primary_region = "bom"
 
 [build]

@@ -206,9 +206,14 @@ function getVerificationEmailHtml(code) {
 </html>`;
 }
 
-// Serve landing page
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+// Healthcheck
+app.get('/health', (req, res) => {
+  db.get('SELECT 1', (err) => {
+    if (err) {
+      return res.status(503).json({ status: 'unhealthy' });
+    }
+    res.json({ status: 'healthy' });
+  });
 });
 
 // Duplicate check endpoint

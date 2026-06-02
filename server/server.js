@@ -7,7 +7,7 @@ const nodemailer = require('nodemailer');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const DB_PATH = path.join(__dirname, 'waitlist.db');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'waitlist.db');
 
 // Middleware
 app.use(cors());

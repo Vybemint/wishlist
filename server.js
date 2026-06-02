@@ -9,9 +9,18 @@ const nodemailer = require('nodemailer');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Use /tmp on Vercel because the root directory is read-only
+// Detect Vercel and Fly.io environments dynamically
 const isVercel = process.env.VERCEL === '1' || process.env.NOW_REGION;
-const DB_PATH = isVercel ? '/tmp/waitlist.db' : path.join(__dirname, 'waitlist.db');
+const isFly = process.env.FLY_APP_NAME !== undefined;
+
+let DB_PATH;
+if (isVercel) {
+  DB_PATH = '/tmp/waitlist.db';
+} else if (isFly) {
+  DB_PATH = '/data/waitlist.db'; // Persistent volume mount path on Fly.io
+} else {
+  DB_PATH = path.join(__dirname, 'waitlist.db');
+}
 
 // Middleware
 app.use(cors());

@@ -2,12 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>VybeMint — The Future of Visual Sharing</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
   <style>
     * {
@@ -40,6 +42,7 @@
       color: var(--text);
       overflow-x: hidden;
       scroll-behavior: smooth;
+      touch-action: pan-y;
     }
 
     /* Cinematic background nebulas & grids */
@@ -52,6 +55,8 @@
       background: radial-gradient(circle, var(--purple-glow), transparent 70%);
       z-index: -2;
       pointer-events: none;
+      animation: driftLeft 25s ease-in-out infinite alternate;
+      will-change: transform, opacity;
     }
 
     .bg-nebula-right {
@@ -63,16 +68,56 @@
       background: radial-gradient(circle, var(--cyan-glow), transparent 70%);
       z-index: -2;
       pointer-events: none;
+      animation: driftRight 30s ease-in-out infinite alternate;
+      will-change: transform, opacity;
+    }
+
+    .bg-nebula-center {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 900px;
+      height: 900px;
+      background: radial-gradient(circle, rgba(124, 92, 255, 0.05) 0%, rgba(0, 212, 255, 0.02) 50%, transparent 80%);
+      z-index: -4;
+      pointer-events: none;
+      animation: pulseCenter 20s ease-in-out infinite alternate;
+      will-change: transform, opacity;
     }
 
     .bg-grid {
       position: fixed;
-      inset: 0;
+      inset: -100px;
       background-image: linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
                         linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
       background-size: 50px 50px;
       z-index: -3;
       pointer-events: none;
+      animation: warpGrid 60s linear infinite;
+      will-change: transform;
+    }
+
+    @keyframes driftLeft {
+      0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+      50% { transform: translate(60px, 40px) scale(1.1); opacity: 1; }
+      100% { transform: translate(-40px, 80px) scale(0.9); opacity: 0.7; }
+    }
+
+    @keyframes driftRight {
+      0% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+      50% { transform: translate(-80px, -30px) scale(0.95); opacity: 0.9; }
+      100% { transform: translate(30px, -60px) scale(1.05); opacity: 0.6; }
+    }
+
+    @keyframes pulseCenter {
+      0% { transform: translate(-50%, -50%) scale(0.9) rotate(0deg); opacity: 0.5; }
+      100% { transform: translate(-50%, -50%) scale(1.1) rotate(180deg); opacity: 1; }
+    }
+
+    @keyframes warpGrid {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(50px); }
     }
 
     /* Layout Container */
@@ -80,14 +125,12 @@
       width: 90%;
       max-width: 1200px;
       margin: auto;
-    }
-
-    /* Header styling */
+    }    /* Header styling */
     nav {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 24px 0;
+      padding: 16px 0;
       border-bottom: 1px solid var(--border);
     }
 
@@ -105,38 +148,6 @@
       background: linear-gradient(90deg, #c084fc, #38bdf8);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 2rem;
-      list-style: none;
-    }
-
-    .nav-links a {
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 0.92rem;
-      font-weight: 500;
-      transition: color 0.3s ease;
-      position: relative;
-      padding-bottom: 4px;
-    }
-
-    .nav-links a:hover, .nav-links a.active {
-      color: var(--text);
-    }
-
-    .nav-links a.active::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background-color: var(--accent);
     }
 
     .nav-actions {
@@ -188,12 +199,12 @@
 
     /* Hero Section Grid */
     .hero {
-      min-height: calc(100vh - 90px);
+      min-height: calc(82vh - 80px);
       display: grid;
       grid-template-columns: 1.15fr 0.85fr;
       align-items: center;
       gap: 60px;
-      padding: var(--space-lg) 0 var(--space-xl) 0;
+      padding: 1.5rem 0 var(--space-xl) 0;
     }
 
     .hero-content {
@@ -228,7 +239,7 @@
 
     h1 {
       font-family: 'Outfit', sans-serif;
-      font-size: clamp(2.8rem, 6vw, 4.8rem);
+      font-size: clamp(2.2rem, 8vw, 4.6rem);
       line-height: 1.05;
       letter-spacing: -2px;
       font-weight: 900;
@@ -459,120 +470,7 @@
       perspective: 1200px;
     }
 
-    /* Rotating Hologram Rings */
-    .hologram-base {
-      position: absolute;
-      bottom: -60px;
-      width: 320px;
-      height: 120px;
-      background: radial-gradient(ellipse, rgba(124, 92, 255, 0.4), transparent 70%);
-      transform: rotateX(75deg);
-      z-index: -1;
-    }
 
-    .holo-ring {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      border: 2px solid rgba(124, 92, 255, 0.3);
-      border-radius: 50%;
-      box-shadow: 0 0 20px rgba(124, 92, 255, 0.4);
-      animation: rotateRing 8s linear infinite;
-    }
-
-    .holo-ring.ring-1 {
-      width: 240px;
-      height: 240px;
-    }
-
-    .holo-ring.ring-2 {
-      width: 300px;
-      height: 300px;
-      border-style: dashed;
-      animation-duration: 14s;
-      animation-direction: reverse;
-    }
-
-    @keyframes rotateRing {
-      to { transform: translate(-50%, -50%) rotate(360deg); }
-    }
-
-    /* CSS 3D Phone Container */
-    .phone-wrapper {
-      width: 100%;
-      max-width: 22.5rem;
-      transform-style: preserve-3d;
-      transform: rotateY(-18deg) rotateX(12deg) rotateZ(-2deg);
-      animation: float 5s ease-in-out infinite;
-      transition: transform 0.1s ease;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: rotateY(-18deg) rotateX(12deg) rotateZ(-2deg) translateY(0); }
-      50% { transform: rotateY(-18deg) rotateX(12deg) rotateZ(-2deg) translateY(-15px); }
-    }
-
-    /* Real 3D Phone body structure */
-    .phone-3d {
-      width: 100%;
-      aspect-ratio: 0.485;
-      background: #0d0d11;
-      border-radius: 42px;
-      border: 4px solid #1c1b22;
-      box-shadow: 
-        0 15px 35px rgba(0,0,0,0.8),
-        -10px 5px 25px rgba(124,92,255,0.15),
-        inset 0 0 8px rgba(255,255,255,0.05);
-      padding: 10px;
-      position: relative;
-    }
-
-    .phone-3d::after {
-      content: '';
-      position: absolute;
-      top: -2px; left: -2px; right: -2px; bottom: -2px;
-      border-radius: 40px;
-      border: 2px solid rgba(124, 92, 255, 0.2);
-      pointer-events: none;
-    }
-
-    /* Dynamic Island notch */
-    .phone-notch {
-      position: absolute;
-      top: 14px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 80px;
-      height: 22px;
-      background-color: #000000;
-      border-radius: 12px;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding-right: 12px;
-    }
-
-    .phone-notch::before {
-      content: '';
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background-color: #1a1a24;
-    }
-
-    .phone-screen {
-      width: 100%;
-      height: 100%;
-      border-radius: 34px;
-      overflow: hidden;
-      background-color: #050508;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      padding: 44px 18px 18px 18px;
-    }
 
     /* Inside Phone screen content */
     .screen-header {
@@ -880,30 +778,126 @@
       line-height: 1.6;
     }
 
+    .video-perspective-wrapper {
+      perspective: 1200px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+
     .video-container {
       width: 100%;
       max-width: 900px;
       aspect-ratio: 1.777; /* 16:9 widescreen */
       border-radius: 28px;
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 40px rgba(124, 92, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 40px rgba(124, 92, 255, 0.15);
       background-color: #08080a;
       position: relative;
+      transform: rotateX(12deg) scale(0.9);
+      transition: transform 0.15s cubic-bezier(0.25, 0.8, 0.25, 1), border-radius 0.15s ease, border-color 0.3s ease;
+      transform-origin: center top;
     }
 
-    .video-container video {
+    /* Cinematic slideshow slides styling */
+    .cinematic-slide {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      z-index: 1;
+      transition: opacity 1.2s ease-in-out;
+      display: flex;
+      align-items: flex-end;
+      padding: var(--space-lg) var(--space-xl) !important;
+    }
+
+    .cinematic-slide.active {
+      opacity: 1;
+      z-index: 2;
+      animation: kenBurns 6s infinite alternate ease-in-out;
+    }
+
+    @keyframes kenBurns {
+      0% { transform: scale(1.03) translate(0, 0); }
+      100% { transform: scale(1.12) translate(-1%, -1.5%); }
+    }
+
+    .slide-overlay {
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
+      padding: var(--space-md) var(--space-md) !important;
+      border-radius: 16px;
       width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      text-align: left;
+    }
+
+    .slide-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(1.2rem, 3.5vw, 2.2rem);
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: 1px;
+      margin-bottom: var(--space-xs);
+      text-shadow: 0 0 15px rgba(124, 92, 255, 0.4);
+    }
+
+    .slide-subtitle {
+      font-size: clamp(0.8rem, 1.8vw, 1.05rem);
+      color: #e4e4e7;
+      line-height: 1.5;
+      max-width: 600px;
+    }
+
+    /* Scanlines and progress bar overlay */
+    .cinematic-scanlines {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        rgba(18, 16, 16, 0) 50%, 
+        rgba(0, 0, 0, 0.25) 50%
+      ), linear-gradient(
+        90deg, 
+        rgba(255, 0, 0, 0.06), 
+        rgba(0, 255, 0, 0.02), 
+        rgba(0, 0, 255, 0.06)
+      );
+      background-size: 100% 4px, 6px 100%;
+      z-index: 3;
+      pointer-events: none;
+      opacity: 0.45;
+    }
+
+    .cinematic-progress-bar-wrap {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      z-index: 4;
+    }
+
+    .cinematic-progress-bar {
       height: 100%;
-      object-fit: cover;
+      width: 0;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      box-shadow: 0 0 8px var(--accent);
+      transition: width 0.05s linear;
     }
 
     /* Responsive adjustments */
     @media (max-width: 1024px) {
       .hero {
         grid-template-columns: 1fr;
-        gap: 60px;
+        gap: 32px;
         text-align: center;
+        padding: 1.5rem 0 var(--space-lg) 0;
       }
       .hero-content {
         align-items: center;
@@ -920,21 +914,59 @@
     }
 
     @media (max-width: 768px) {
-      .nav-links {
-        display: none; /* Hide link list on tablet/mobile */
-      }
       .features-grid {
         grid-template-columns: 1fr;
       }
     }
 
     @media (max-width: 480px) {
+      nav {
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
+      }
+      .logo-container {
+        font-size: 1.25rem;
+      }
+      .nav-actions {
+        width: 100%;
+        justify-content: center;
+      }
+      .waitlist-actions {
+        flex-direction: column;
+        width: 100%;
+        align-items: stretch;
+      }
+      .btn-gradient, .btn-trailer {
+        width: 100%;
+        justify-content: center;
+      }
+      .waitlist-box {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+      }
+      .waitlist-box input {
+        width: 100%;
+      }
+      .glass-submit-btn {
+        width: 100%;
+      }
       .features-grid {
         grid-template-columns: 1fr;
       }
       .hero-visual {
-        transform: scale(0.9);
+        transform: scale(0.95);
       }
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes spin-reverse {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
     }
   </style>
 </head>
@@ -943,6 +975,7 @@
 
   <div class="bg-nebula-left"></div>
   <div class="bg-nebula-right"></div>
+  <div class="bg-nebula-center"></div>
   <div class="bg-grid"></div>
 
   <div class="container">
@@ -966,15 +999,6 @@
         </svg>
         <span>VybeMint</span>
       </div>
-
-      <ul class="nav-links">
-        <li><a href="#" class="active">Home</a></li>
-        <li><a href="#">About</a></li>
-        <li><a href="#">Features</a></li>
-        <li><a href="#">Creators</a></li>
-        <li><a href="#">Roadmap</a></li>
-        <li><a href="#">Pricing</a></li>
-      </ul>
 
       <div class="nav-actions">
         <button class="nav-btn btn-glass" id="join-waitlist-header">Join Waitlist</button>
@@ -1065,87 +1089,23 @@
 
       <!-- Right Column Visual: 3D Holographic Base and Phone -->
       <div class="hero-visual">
-        <!-- Hologram base -->
-        <div class="hologram-base">
-          <div class="holo-ring ring-1"></div>
-          <div class="holo-ring ring-2"></div>
-        </div>
 
-        <!-- CSS 3D floating phone -->
-        <div class="phone-wrapper" id="phone-3d-wrapper">
-          <div class="phone-3d">
-            <div class="phone-notch"></div>
-            <div class="phone-screen">
-              
-              <!-- Phone UI Header -->
-              <div class="screen-header">
-                <div class="screen-logo">vybe<span>mint✦</span></div>
-                <div class="screen-nav-icons">
-                  <span class="bell-icon">🔔</span>
-                  <img src="logo_app_icon.png" class="avatar-img" alt="avatar">
-                </div>
-              </div>
-
-              <!-- Phone UI Title -->
-              <h2 class="screen-title">Create.<br>Share.<br>Own.</h2>
-              <p class="screen-subtitle">Built for creators. Powered by community.</p>
-
-              <!-- Phone Tags -->
-              <div class="screen-tags">
-                <div class="screen-tag">✦ No Compression</div>
-                <div class="screen-tag">✦ No AI Scraping</div>
-                <div class="screen-tag">✦ Creator Owned</div>
-              </div>
-
-              <!-- Phone Drops Section -->
-              <div class="drops-section">
-                <div class="drops-header">
-                  <h4>Featured Drops</h4>
-                  <a href="#">View all</a>
-                </div>
-
-                <div class="drops-list">
-                  <div class="drop-card">
-                    <img src="blynk_neon_city.png" alt="Neon City">
-                    <div class="drop-info">
-                      <div class="drop-name">Neon City</div>
-                      <div class="drop-stats">♥ 2.4K</div>
-                    </div>
-                  </div>
-                  <div class="drop-card">
-                    <img src="blynk_space_walk.png" alt="Space Walk">
-                    <div class="drop-info">
-                      <div class="drop-name">Space Walk</div>
-                      <div class="drop-stats">♥ 1.5K</div>
-                    </div>
-                  </div>
-                  <div class="drop-card">
-                    <img src="blynk_dreamscape.png" alt="Dreamscape">
-                    <div class="drop-info">
-                      <div class="drop-name">Dreamscape</div>
-                      <div class="drop-stats">♥ 3.7K</div>
-                    </div>
-                  </div>
-                  <div class="drop-card">
-                    <img src="blynk_cyber_flow.png" alt="Cyber Flow">
-                    <div class="drop-info">
-                      <div class="drop-name">Cyber Flow</div>
-                      <div class="drop-stats">♥ 2.1K</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Phone Tabbar -->
-              <div class="phone-navbar">
-                <span class="nav-icon active">🏠</span>
-                <span class="nav-icon">🔍</span>
-                <span class="nav-icon add-btn">+</span>
-                <span class="nav-icon">⚡</span>
-                <span class="nav-icon">👤</span>
-              </div>
-
+        <!-- Three.js Canvas Container -->
+        <div id="three-phone-container" style="width: 100%; max-width: 29rem; aspect-ratio: 0.72; position: relative; z-index: 5; transform-style: preserve-3d; perspective: 1200px; display: flex; justify-content: center; align-items: center; touch-action: pan-y;">
+          <canvas id="three-phone-canvas" style="width: 100%; height: 100%; outline: none; touch-action: pan-y; filter: drop-shadow(0 25px 45px rgba(0, 0, 0, 0.75));"></canvas>
+          
+          <!-- 3D Loader Overlay -->
+          <div id="phone-loader" style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(3, 3, 3, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 28px; z-index: 10; border: 1px solid rgba(255, 255, 255, 0.05); transition: opacity 0.6s ease;">
+            <!-- Circular glowing spinner with double rings -->
+            <div class="loader-spinner-wrap" style="position: relative; width: 80px; height: 80px; margin-bottom: 20px;">
+              <div class="loader-ring-outer" style="position: absolute; inset: 0; border: 3px solid transparent; border-top-color: #8a5cf5; border-bottom-color: #00d4ff; border-radius: 50%; animation: spin 1.2s linear infinite;"></div>
+              <div class="loader-ring-inner" style="position: absolute; inset: 10px; border: 3px solid transparent; border-left-color: #d946ef; border-right-color: #7c3aed; border-radius: 50%; animation: spin-reverse 1.0s linear infinite;"></div>
+              <div class="loader-dot" style="position: absolute; inset: 0; margin: auto; width: 10px; height: 10px; background-color: #ffffff; border-radius: 50%; box-shadow: 0 0 15px #ffffff;"></div>
             </div>
+            <!-- Loading Text -->
+            <div style="font-family: 'Outfit', sans-serif; font-size: 1.1rem; font-weight: 700; color: #ffffff; letter-spacing: 0.5px; margin-bottom: 8px;">Loading Visualizer</div>
+            <!-- Progress Percentage -->
+            <div id="phone-loader-pct" style="font-family: monospace; font-size: 0.95rem; font-weight: 600; color: #c084fc; text-shadow: 0 0 10px rgba(192, 132, 252, 0.3);">0%</div>
           </div>
         </div>
       </div>
@@ -1208,11 +1168,42 @@
     <!-- Cinematic Video Section -->
     <section class="trailer-section" id="trailer-section">
       <h2 class="trailer-title">Experience the Vision</h2>
-      <p class="trailer-subtitle">Watch the official cinematic launch teaser and discover the next generation of image platforms.</p>
+      <p class="trailer-subtitle">Discover the VybeMint cinematic vision, showcasing our core values of uncompressed visuals, ownership, security, and community.</p>
       
-      <div class="video-container">
-        <!-- Widescreen abstract space flight loop from high-quality direct CDN -->
-        <video src="https://assets.mixkit.co/videos/preview/mixkit-space-odyssey-with-astronaut-floating-in-starry-sky-40439-large.mp4" loop muted playsinline id="trailer-video"></video>
+      <div class="video-perspective-wrapper">
+        <div class="video-container" id="trailer-video-container" style="position: relative;">
+          <!-- Slideshow slides -->
+          <div class="cinematic-slide active" style="background-image: url('slide1.png');">
+            <div class="slide-overlay">
+              <h3 class="slide-title">WELCOME TO VYBEMINT</h3>
+              <p class="slide-subtitle">The next-generation visual sharing network built for quality and connection.</p>
+            </div>
+          </div>
+          <div class="cinematic-slide" style="background-image: url('slide2.png');">
+            <div class="slide-overlay">
+              <h3 class="slide-title">UNCOMPRESSED QUALITY</h3>
+              <p class="slide-subtitle">Original, hyper-detailed photo resolutions with zero compression or quality loss.</p>
+            </div>
+          </div>
+          <div class="cinematic-slide" style="background-image: url('slide3.png');">
+            <div class="slide-overlay">
+              <h3 class="slide-title">SECURE OWNERSHIP</h3>
+              <p class="slide-subtitle">Encrypted IP ownership rights and robust protection against AI scraping grids.</p>
+            </div>
+          </div>
+          <div class="cinematic-slide" style="background-image: url('slide4.png');">
+            <div class="slide-overlay">
+              <h3 class="slide-title">ORGANIC COMMUNITY</h3>
+              <p class="slide-subtitle">Real feedback, visual aesthetics, and genuine connection away from algorithms.</p>
+            </div>
+          </div>
+          
+          <!-- Cinematic scanlines/glitch layers and progress bar -->
+          <div class="cinematic-scanlines"></div>
+          <div class="cinematic-progress-bar-wrap">
+            <div class="cinematic-progress-bar" id="trailer-progress-bar"></div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1340,62 +1331,975 @@
       // Scroll to video click triggers
       const scrollToVideo = () => {
         document.getElementById('trailer-section').scrollIntoView({ behavior: 'smooth' });
-        // Auto play video when scrolling down
-        const video = document.getElementById('trailer-video');
-        video.play().catch(err => console.log('video auto play deferred'));
       };
 
       document.getElementById('watch-trailer-btn').addEventListener('click', scrollToVideo);
       document.getElementById('scroll-wheel-btn').addEventListener('click', scrollToVideo);
 
-      // Audio controls for background trailer video
+      // Cinematic Slideshow player logic
+      const slidesList = Array.from(document.querySelectorAll('.cinematic-slide'));
+      const progressBar = document.getElementById('trailer-progress-bar');
+      let currentSlideIndex = 0;
+      const slideDuration = 5500; // 5.5s per slide
+      let slideTimer = null;
+      let slideStartTimestamp = 0;
+      let slideProgressInterval = null;
+      let isTrailerScrollingInView = false;
+
+      function playNextSlide() {
+        slidesList[currentSlideIndex].classList.remove('active');
+        currentSlideIndex = (currentSlideIndex + 1) % slidesList.length;
+        slidesList[currentSlideIndex].classList.add('active');
+        
+        slideStartTimestamp = Date.now();
+        resetProgressBar();
+      }
+
+      function resetProgressBar() {
+        if (slideProgressInterval) clearInterval(slideProgressInterval);
+        slideProgressInterval = setInterval(() => {
+          if (!isTrailerScrollingInView) return;
+          const elapsed = Date.now() - slideStartTimestamp;
+          const pct = Math.min((elapsed / slideDuration) * 100, 100);
+          progressBar.style.width = `${pct}%`;
+        }, 50);
+      }
+
+      function startSlideshow() {
+        if (slideTimer) return;
+        slideStartTimestamp = Date.now();
+        resetProgressBar();
+        slideTimer = setInterval(playNextSlide, slideDuration);
+      }
+
+      function stopSlideshow() {
+        if (slideTimer) {
+          clearInterval(slideTimer);
+          slideTimer = null;
+        }
+        if (slideProgressInterval) {
+          clearInterval(slideProgressInterval);
+          slideProgressInterval = null;
+        }
+        progressBar.style.width = '0%';
+      }
+
+      // Audio controls with dynamic Web Audio API synth oscillator
       const soundBtn = document.getElementById('sound-toggle-btn');
       const visualizer = document.getElementById('audio-visualizer');
       const bars = visualizer.querySelectorAll('.bar');
       const soundStatus = document.getElementById('sound-status');
-      const video = document.getElementById('trailer-video');
+      let isSoundOn = false;
+      let audioCtx = null;
+      let osc1 = null, osc2 = null, oscGain = null;
 
       soundBtn.addEventListener('click', () => {
-        if (video.muted) {
-          video.muted = false;
+        isSoundOn = !isSoundOn;
+        if (isSoundOn) {
           soundStatus.textContent = "On";
           visualizer.style.opacity = "1";
           bars.forEach(bar => bar.style.animationPlayState = "running");
+          playAtmosphericAmbientSound();
         } else {
-          video.muted = true;
           soundStatus.textContent = "Off";
           visualizer.style.opacity = "0.5";
           bars.forEach(bar => bar.style.animationPlayState = "paused");
+          stopAtmosphericAmbientSound();
         }
       });
 
-      // 3D Phone Hover Interactive tilts
-      const phoneWrapper = document.getElementById('phone-3d-wrapper');
-      document.querySelector('.hero-visual').addEventListener('mousemove', (e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - rect.left - rect.width/2;
-        const y = e.clientY - rect.top - rect.height/2;
+      function playAtmosphericAmbientSound() {
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          
+          osc1 = audioCtx.createOscillator();
+          osc1.type = 'sawtooth';
+          osc1.frequency.setValueAtTime(110, audioCtx.currentTime); // A2
+          
+          osc2 = audioCtx.createOscillator();
+          osc2.type = 'triangle';
+          osc2.frequency.setValueAtTime(164.81, audioCtx.currentTime); // E3 (Perfect Fifth)
+          
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(320, audioCtx.currentTime);
+          
+          oscGain = audioCtx.createGain();
+          oscGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
+          oscGain.gain.linearRampToValueAtTime(0.06, audioCtx.currentTime + 1.5);
+          
+          osc1.connect(filter);
+          osc2.connect(filter);
+          filter.connect(oscGain);
+          oscGain.connect(audioCtx.destination);
+          
+          osc1.start();
+          osc2.start();
+        } catch (e) {}
+      }
+
+      function stopAtmosphericAmbientSound() {
+        try {
+          if (oscGain && audioCtx) {
+            oscGain.gain.linearRampToValueAtTime(0.0, audioCtx.currentTime + 0.4);
+            setTimeout(() => {
+              if (osc1) osc1.stop();
+              if (osc2) osc2.stop();
+              if (audioCtx) audioCtx.close();
+              audioCtx = null;
+            }, 500);
+          }
+        } catch (e) {}
+      }
+
+      // Scroll-driven cinematic trailer transition (rotates and scales container in 3D space)
+      const trailerContainer = document.getElementById('trailer-video-container');
+
+      window.addEventListener('scroll', () => {
+        const rect = trailerContainer.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
         
-        // Tilt amount calculation
-        const tiltX = -y / 15;
-        const tiltY = x / 15;
-        
-        phoneWrapper.style.animation = 'none'; // pause float animation on interactive mouse hover
-        phoneWrapper.style.transform = `rotateY(${-18 + tiltY}deg) rotateX(${12 + tiltX}deg) rotateZ(-2deg)`;
+        if (rect.top < windowHeight && rect.bottom > 0) {
+          isTrailerScrollingInView = true;
+          startSlideshow();
+          
+          // Calculate visibility ratio
+          const currentPos = windowHeight - rect.top;
+          const ratio = Math.min(Math.max(currentPos / (windowHeight * 0.95), 0), 1);
+          
+          // Interpolate rotation (from 12deg to 0deg) and scale (from 0.9 to 1.0)
+          const rotateX = 12 - (ratio * 12);
+          const scale = 0.9 + (ratio * 0.1);
+          const borderRadius = 28 - (ratio * 14); // 28px to 14px
+          
+          trailerContainer.style.transform = `rotateX(${rotateX}deg) scale(${scale})`;
+          trailerContainer.style.borderRadius = `${borderRadius}px`;
+        } else {
+          isTrailerScrollingInView = false;
+          stopSlideshow();
+        }
       });
 
-      document.querySelector('.hero-visual').addEventListener('mouseleave', () => {
-        // Resume floating keyframes
-        phoneWrapper.style.animation = 'float 5s ease-in-out infinite';
+      // Three.js 3D Phone Model Setup
+      const phoneContainer = document.getElementById('three-phone-container');
+      const phoneCanvas = document.getElementById('three-phone-canvas');
+      
+      // Scene, Camera, Renderer
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, phoneContainer.clientWidth / phoneContainer.clientHeight, 0.1, 100);
+      camera.position.z = 7.5;
+      
+      const renderer = new THREE.WebGLRenderer({ canvas: phoneCanvas, antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(phoneContainer.clientWidth, phoneContainer.clientHeight);
+      
+      // Tone mapping and colorspace configuration for photo-realistic materials
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.05;
+      
+      const phoneGroup = new THREE.Group();
+      scene.add(phoneGroup);
+      
+      // Rounded Rectangle Shape helper
+      function createRoundedRectShape(w, h, r) {
+        const shape = new THREE.Shape();
+        const x = -w/2, y = -h/2;
+        shape.moveTo(x, y + r);
+        shape.lineTo(x, y + h - r);
+        shape.quadraticCurveTo(x, y + h, x + r, y + h);
+        shape.lineTo(x + w - r, y + h);
+        shape.quadraticCurveTo(x + w, y + h, x + w, y + h - r);
+        shape.lineTo(x + w, y + r);
+        shape.quadraticCurveTo(x + w, y, x + w - r, y);
+        shape.lineTo(x + r, y);
+        shape.quadraticCurveTo(x, y, x, y + r);
+        return shape;
+      }
+
+      // Screen UI texture drawing on 2D Canvas
+      const screenCanvas = document.createElement('canvas');
+      screenCanvas.width = 512;
+      screenCanvas.height = 1024;
+      const sCtx = screenCanvas.getContext('2d');
+      
+      const screenTexture = new THREE.CanvasTexture(screenCanvas);
+      screenTexture.generateMipmaps = false;
+      screenTexture.minFilter = THREE.LinearFilter;
+      screenTexture.magFilter = THREE.LinearFilter;
+      
+      // Load UI images
+      const miniSlides = [];
+      const imgSources = ['slide1.png', 'slide2.png', 'slide3.png', 'slide4.png'];
+      let loadedImgs = 0;
+      
+      imgSources.forEach((src, idx) => {
+        const img = new Image();
+        img.src = src;
+        img.onload = () => {
+          miniSlides[idx] = img;
+          loadedImgs++;
+        };
       });
 
-      // Interactive 3D Explore toggle
-      document.getElementById('explore-3d-btn').addEventListener('click', () => {
-        phoneWrapper.style.transform = `rotateY(342deg) rotateX(360deg) rotateZ(0deg)`;
-        phoneWrapper.style.transition = 'transform 1s cubic-bezier(0.4, 0, 0.2, 1)';
-        setTimeout(() => {
-          phoneWrapper.style.transition = 'transform 0.1s ease';
-        }, 1000);
+      const appIcon = new Image();
+      appIcon.src = 'logo_app_icon.png';
+
+      // Auto-scrolling horizontal drops list variables
+      let dropScrollOffset = 0;
+      let targetUiScroll = 0;
+      let currentUiScroll = 0;
+      
+      // Interaction variables (default rotation is tilted as in the reference image)
+      let targetRotY = -0.9;
+      let targetRotX = 0.15;
+      let targetZoom = 7.5;
+      
+      let baseDragRotY = -0.9;
+      let baseDragRotX = 0.15;
+      let isDragging = false;
+      let previousMousePosition = { x: 0, y: 0 };
+      
+      let tiltX = 0;
+      let tiltY = 0;
+      
+      function drawScreenUI() {
+        const uiScrollY = 0; // Prevent all scroll up and down of inside content
+        
+        // Background gradient
+        const grad = sCtx.createLinearGradient(0, 0, 0, 1024);
+        grad.addColorStop(0, '#0c0816');
+        grad.addColorStop(0.5, '#050308');
+        grad.addColorStop(1, '#000000');
+        sCtx.fillStyle = grad;
+        sCtx.fillRect(0, 0, 512, 1024);
+        
+        // Grid pattern
+        sCtx.strokeStyle = 'rgba(124, 92, 255, 0.05)';
+        sCtx.lineWidth = 1;
+        for (let i = 0; i < 512; i += 32) {
+          sCtx.beginPath(); sCtx.moveTo(i, 0); sCtx.lineTo(i, 1024); sCtx.stroke();
+        }
+        for (let j = 0; j < 1024; j += 32) {
+          sCtx.beginPath(); sCtx.moveTo(0, j); sCtx.lineTo(512, j); sCtx.stroke();
+        }
+        
+        // --- Scrollable middle region (now static) ---
+        sCtx.save();
+        sCtx.beginPath();
+        sCtx.rect(0, 150, 512, 770); // Clip from Y=150 to Y=920
+        sCtx.clip();
+        
+        // Titles
+        sCtx.font = '900 58px Outfit';
+        sCtx.fillStyle = '#ffffff';
+        sCtx.fillText('Create.', 40, 230 - uiScrollY);
+        sCtx.fillText('Share.', 40, 300 - uiScrollY);
+        sCtx.fillText('Own.', 40, 370 - uiScrollY);
+        
+        sCtx.font = '500 22px Inter';
+        sCtx.fillStyle = '#9b9b9f';
+        sCtx.fillText('Built for creators. Powered by community.', 40, 420 - uiScrollY);
+        
+        // Pills
+        const tags = ['✦ No Compression', '✦ No AI Scraping', '✦ Creator Owned'];
+        let currentX = 40;
+        let currentY = 470 - uiScrollY;
+        sCtx.font = '600 18px Inter';
+        tags.forEach(tag => {
+          sCtx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+          sCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+          const textW = sCtx.measureText(tag).width;
+          sCtx.beginPath(); sCtx.roundRect(currentX, currentY, textW + 24, 36, 18); sCtx.fill(); sCtx.stroke();
+          sCtx.fillStyle = '#e4e4e7';
+          sCtx.fillText(tag, currentX + 12, currentY + 24);
+          currentX += textW + 32;
+        });
+        
+        // Drops deck
+        sCtx.font = '900 26px Outfit';
+        sCtx.fillStyle = '#ffffff';
+        sCtx.fillText('Featured Drops', 40, 600 - uiScrollY);
+        sCtx.font = '600 20px Inter';
+        sCtx.fillStyle = '#9b9b9f';
+        sCtx.fillText('View all', 400, 600 - uiScrollY);
+        
+        const cardWidth = 200;
+        const cardHeight = 260;
+        const dropNames = ['Neon City', 'Space Walk', 'Dreamscape', 'Cyber Flow', 'Neon City 2', 'Space Walk 2'];
+        const dropStats = ['♥ 2.4K', '♥ 1.5K', '♥ 3.7K', '♥ 2.1K', '♥ 4.2K', '♥ 3.1K'];
+        
+        // Move offset
+        dropScrollOffset += 0.45;
+        const totalSliderWidth = 6 * 220; // 6 cards total
+        const currentScrollX = -(dropScrollOffset % totalSliderWidth);
+        
+        for (let k = 0; k < 6; k++) {
+          const xPos = 40 + (k * 220) + currentScrollX;
+          const yPos = 630 - uiScrollY;
+          
+          let finalX = xPos;
+          if (finalX + cardWidth < 0) {
+            finalX += totalSliderWidth;
+          }
+          
+          sCtx.fillStyle = '#1c1b22';
+          sCtx.beginPath(); sCtx.roundRect(finalX, yPos, cardWidth, cardHeight, 18); sCtx.fill();
+          
+          const slideImg = miniSlides[k % 4];
+          if (slideImg && slideImg.complete) {
+            sCtx.save();
+            sCtx.beginPath(); sCtx.roundRect(finalX, yPos, cardWidth, cardHeight, 18); sCtx.clip();
+            sCtx.drawImage(slideImg, finalX, yPos, cardWidth, cardHeight);
+            
+            const fade = sCtx.createLinearGradient(finalX, yPos + 120, finalX, yPos + cardHeight);
+            fade.addColorStop(0, 'transparent');
+            fade.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
+            sCtx.fillStyle = fade;
+            sCtx.fillRect(finalX, yPos, cardWidth, cardHeight);
+            
+            sCtx.font = 'bold 20px Inter';
+            sCtx.fillStyle = '#ffffff';
+            sCtx.fillText(dropNames[k], finalX + 16, yPos + cardHeight - 44);
+            sCtx.font = '600 16px Inter';
+            sCtx.fillStyle = '#9b9b9f';
+            sCtx.fillText(dropStats[k], finalX + 16, yPos + cardHeight - 18);
+            sCtx.restore();
+          }
+        }
+        sCtx.restore(); // Restore clip region
+        
+        // --- Static Headers & Footers (drawn on top) ---
+        // Draw exact vector logo (sail symbol) in header area
+        sCtx.save();
+        sCtx.translate(40, 95);           // Draw start position
+        sCtx.scale(0.48, 0.48);           // Clean size
+        sCtx.rotate(-15 * Math.PI / 180); // Exact -15 degrees rotation
+        
+        const pathGrad = sCtx.createLinearGradient(0, 0, 80, 80);
+        pathGrad.addColorStop(0, '#c084fc');
+        pathGrad.addColorStop(1, '#38bdf8');
+        sCtx.fillStyle = pathGrad;
+        
+        // Vertical capsule bar (x=20, y=25, w=8, h=30, rx=4)
+        sCtx.beginPath();
+        sCtx.roundRect(20, 25, 8, 30, 4);
+        sCtx.fill();
+        
+        // Triangle sail (M34 25 L58 40 L34 55 Z)
+        sCtx.beginPath();
+        sCtx.moveTo(34, 25);
+        sCtx.lineTo(58, 40);
+        sCtx.lineTo(34, 55);
+        sCtx.closePath();
+        sCtx.fill();
+        
+        // Bottom horizontal bar (x=16, y=60, w=48, h=8, rx=4)
+        sCtx.beginPath();
+        sCtx.roundRect(16, 60, 48, 8, 4);
+        sCtx.fill();
+        sCtx.restore();
+        
+        // Draw text 'vybemint'
+        sCtx.font = '800 32px Inter';
+        sCtx.fillStyle = '#ffffff';
+        sCtx.fillText('vybemint', 82, 120);
+        
+        // Draw superscript star/plus symbol '⁺'
+        sCtx.fillStyle = '#c084fc';
+        sCtx.font = '800 24px Inter';
+        sCtx.fillText('⁺', 82 + sCtx.measureText('vybemint').width, 108);
+        
+        // Icons
+        sCtx.font = '28px Arial';
+        sCtx.fillText('🔔', 370, 115);
+        if (appIcon.complete && appIcon.naturalWidth !== 0) {
+          sCtx.save();
+          sCtx.beginPath();
+          sCtx.arc(440, 110, 20, 0, Math.PI * 2);
+          sCtx.clip();
+          sCtx.drawImage(appIcon, 420, 90, 40, 40);
+          sCtx.restore();
+          sCtx.strokeStyle = '#7c5cff';
+          sCtx.lineWidth = 2;
+          sCtx.beginPath(); sCtx.arc(440, 110, 20, 0, Math.PI * 2); sCtx.stroke();
+        }
+        
+        // Tabbar
+        sCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        sCtx.lineWidth = 1;
+        sCtx.beginPath(); sCtx.moveTo(40, 930); sCtx.lineTo(472, 930); sCtx.stroke();
+        
+        sCtx.font = '36px Arial';
+        sCtx.fillText('🏠', 60, 985);
+        sCtx.fillText('🔍', 160, 985);
+        
+        sCtx.fillStyle = '#7c5cff';
+        sCtx.beginPath(); sCtx.arc(256, 975, 25, 0, Math.PI * 2); sCtx.fill();
+        sCtx.font = 'bold 36px Inter';
+        sCtx.fillStyle = '#ffffff';
+        sCtx.textAlign = 'center';
+        sCtx.fillText('+', 256, 987);
+        sCtx.textAlign = 'left';
+        
+        sCtx.font = '36px Arial';
+        sCtx.fillText('⚡', 330, 985);
+        sCtx.fillText('👤', 420, 985);
+        
+        screenTexture.needsUpdate = true;
+      }
+      
+      // Load iPhone 15 Pro Max GLB model
+      const loader = new THREE.GLTFLoader();
+      let phoneModel = null;
+      
+      const loaderOverlay = document.getElementById('phone-loader');
+      const loaderPct = document.getElementById('phone-loader-pct');
+      
+      loader.load('iphone_15_pro_max_black.glb', (gltf) => {
+        phoneModel = gltf.scene;
+        
+        // Auto scale and center
+        const box = new THREE.Box3().setFromObject(phoneModel);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+        
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const targetScale = 4.2 / maxDim; // scale to fit the viewport
+        phoneModel.scale.set(targetScale, targetScale, targetScale);
+        
+        // Center rotation pivots
+        phoneModel.position.set(-center.x * targetScale, -center.y * targetScale, -center.z * targetScale);
+        
+        // Add to our group
+        phoneGroup.add(phoneModel);
+        
+        // Rotate 180 degrees around Y-axis so screen faces front!
+        phoneModel.rotation.y = Math.PI;
+        
+        // Modify materials inside the model to embed screen texture and make materials highly realistic
+        phoneModel.traverse((child) => {
+          if (child.isMesh) {
+            const name = child.name.toLowerCase();
+            const matName = child.material && child.material.name ? child.material.name : '';
+            
+            // Screen display mesh override
+            if (matName === 'pIJKfZsazmcpEiU' || name.includes('screen') || matName.toLowerCase().includes('screen')) {
+              child.material = new THREE.MeshBasicMaterial({
+                map: screenTexture,
+                side: THREE.DoubleSide
+              });
+            }
+            
+            // Glass screen cover override
+            else if (matName === 'EszxgwYUTxbhBrC' || name.includes('glass') || matName.toLowerCase().includes('glass')) {
+              child.material = new THREE.MeshPhysicalMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.12,
+                roughness: 0.01,
+                metalness: 0.05,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.01,
+                transmission: 0.95,
+                ior: 1.5,
+                depthWrite: false
+              });
+            }
+            
+            // General body/chassis mesh adjustment to make phone sides look silver and shiny
+            else {
+              if (child.material) {
+                // Clone the material to prevent sharing issues if multiple parts share a single compiled material
+                child.material = child.material.clone();
+                
+                // Sleek, photorealistic silver titanium parameters (high metalness, lower roughness for specular sheen)
+                child.material.roughness = 0.22;
+                child.material.metalness = 0.95;
+                
+                // Set color to metallic silver
+                if (child.material.color) {
+                  child.material.color.setHex(0xdadade);
+                }
+              }
+            }
+          }
+        });
+        
+        // Create realistic floor reflection by cloning the phone and flipping it Y-axis
+        const reflectionPhone = phoneModel.clone();
+        reflectionPhone.position.y = -4.3; // Mirror position below Y = -2.15 floor plane
+        reflectionPhone.scale.y = -targetScale; // Flip Y axis
+        
+        reflectionPhone.traverse((child) => {
+          if (child.isMesh) {
+            const name = child.name.toLowerCase();
+            const matName = child.material && child.material.name ? child.material.name : '';
+            
+            // Check if it's the screen mesh and make it invisible in the reflection
+            const isScreen = matName === 'pIJKfZsazmcpEiU' || name.includes('screen') || matName.toLowerCase().includes('screen');
+            if (isScreen) {
+              child.visible = false;
+            } else {
+              child.material = child.material.clone();
+              child.material.transparent = true;
+              child.material.opacity = 0.12; 
+              if (child.material.color) {
+                child.material.color.multiplyScalar(0.5); // darken reflection body
+              }
+              child.material.depthWrite = false;
+            }
+          }
+        });
+        phoneGroup.add(reflectionPhone);
+        
+        // Update screen drawing immediately
+        drawScreenUI();
+        
+        // Hide loader overlay with a smooth fade-out
+        if (loaderOverlay) {
+          loaderOverlay.style.opacity = 0;
+          setTimeout(() => {
+            loaderOverlay.style.display = 'none';
+          }, 600);
+        }
+      }, (xhr) => {
+        // onProgress
+        if (xhr.lengthComputable) {
+          const percentComplete = Math.round((xhr.loaded / xhr.total) * 100);
+          if (loaderPct) loaderPct.textContent = `${percentComplete}%`;
+        }
+      }, (err) => {
+        console.error('Failed to load GLTF model:', err);
+        if (loaderOverlay) {
+          const title = loaderOverlay.querySelector('div:nth-of-type(2)');
+          if (title) title.textContent = "Failed to load 3D model";
+          if (loaderPct) loaderPct.textContent = "Please refresh the page";
+        }
+      });
+      
+      // Moody, high-contrast dark and purple themed lighting
+      const ambientLight = new THREE.AmbientLight(0x0e0b1c, 0.55); // Indigo/violet tinted dark base
+      scene.add(ambientLight);
+      
+      // Main directional light for sharp metallic specular outlines
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight.position.set(-3, 5, 6);
+      scene.add(dirLight);
+      
+      // Left and Right Rim Point Lights matching purple and cyan theme branding
+      const rimLightLeft = new THREE.PointLight(0x8a5cf5, 8.5, 12); // Vibrant purple rim light
+      rimLightLeft.position.set(-4.5, 0.5, -2);
+      scene.add(rimLightLeft);
+      
+      const rimLightRight = new THREE.PointLight(0x00d4ff, 7.5, 12); // Vibrant cyan rim light
+      rimLightRight.position.set(4.5, 0.5, -2);
+      scene.add(rimLightRight);
+      
+      const backRimLight = new THREE.PointLight(0x7c3aed, 6.0, 12); // Deep indigo back rim light
+      backRimLight.position.set(0, 3, -4);
+      scene.add(backRimLight);
+      
+      // Moving point lights for rich, color-shifting specular reflections on glossy body surfaces
+      const reflectionLight1 = new THREE.PointLight(0xa855f7, 3.2, 15); // Deep purple reflection highlight
+      reflectionLight1.position.set(4, -3, 3);
+      scene.add(reflectionLight1);
+
+      const reflectionLight2 = new THREE.PointLight(0x06b6d4, 2.5, 15); // Deep cyan reflection highlight
+      reflectionLight2.position.set(-4, 3, 3);
+      scene.add(reflectionLight2);
+      
+      // --- Hologram Rings & Smoke Particles in Three.js ---
+      const holoGroup = new THREE.Group();
+      holoGroup.position.y = -2.15; // Set base exactly at the bottom of the phone
+      scene.add(holoGroup);
+      
+      // Canvas helper to generate glowing circular textures
+      function createHoloTexture(type, colorHex) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, 512, 512);
+        const cx = 256, cy = 256;
+        
+        if (type === 'inner') {
+          // Ring 1: Inner glowing purple
+          const radius = 150;
+          ctx.shadowColor = colorHex;
+          ctx.shadowBlur = 24;
+          ctx.strokeStyle = colorHex;
+          ctx.lineWidth = 8;
+          ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.stroke();
+          
+          // Outer blur ring
+          ctx.shadowBlur = 40;
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        } 
+        else if (type === 'dashed') {
+          // Ring 2: Dashed cyan
+          const radius = 195;
+          ctx.shadowColor = colorHex;
+          ctx.shadowBlur = 18;
+          ctx.strokeStyle = colorHex;
+          ctx.lineWidth = 5;
+          ctx.setLineDash([18, 12]);
+          ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.stroke();
+        } 
+        else if (type === 'outer') {
+          // Ring 3: Outer geometric purple/cyan double rings
+          const radius = 240;
+          ctx.shadowColor = colorHex;
+          ctx.shadowBlur = 14;
+          ctx.strokeStyle = colorHex;
+          ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.stroke();
+          
+          // Small ticks
+          ctx.shadowBlur = 0;
+          ctx.setLineDash([2, 28]);
+          ctx.lineWidth = 6;
+          ctx.beginPath(); ctx.arc(cx, cy, radius + 8, 0, Math.PI * 2); ctx.stroke();
+        }
+        
+        return new THREE.CanvasTexture(canvas);
+      }
+      
+      // Canvas helper for soft billboarded smoke particles
+      function createSmokeTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, 128, 128);
+        
+        // Radial gradient: Purple core fading into Cyan and then transparency
+        const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+        grad.addColorStop(0, 'rgba(147, 51, 234, 0.45)'); // Purple core
+        grad.addColorStop(0.4, 'rgba(6, 182, 212, 0.18)'); // Cyan middle
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)'); // Transparent
+        
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(64, 64, 64, 0, Math.PI * 2); ctx.fill();
+        return new THREE.CanvasTexture(canvas);
+      }
+      
+      // Generate Ring textures
+      const texInner = createHoloTexture('inner', '#7c5cff');
+      const texDashed = createHoloTexture('dashed', '#00d4ff');
+      const texOuter = createHoloTexture('outer', '#d946ef');
+      
+      // Ring Meshes - Sized to 3.0x3.0 PlaneGeometry (enlarged slightly for maximum premium impact)
+      const ringGeo = new THREE.PlaneGeometry(3.0, 3.0);
+      
+      // Made rings darker by applying custom opacity parameters (0.65 for inner/dashed, 0.55 for outer)
+      const matInner = new THREE.MeshBasicMaterial({ map: texInner, transparent: true, opacity: 0.65, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending });
+      const meshInner = new THREE.Mesh(ringGeo, matInner);
+      meshInner.rotation.x = -Math.PI / 2;
+      holoGroup.add(meshInner);
+      
+      const matDashed = new THREE.MeshBasicMaterial({ map: texDashed, transparent: true, opacity: 0.65, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending });
+      const meshDashed = new THREE.Mesh(ringGeo, matDashed);
+      meshDashed.rotation.x = -Math.PI / 2;
+      holoGroup.add(meshDashed);
+      
+      const matOuter = new THREE.MeshBasicMaterial({ map: texOuter, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending });
+      const meshOuter = new THREE.Mesh(ringGeo, matOuter);
+      meshOuter.rotation.x = -Math.PI / 2;
+      holoGroup.add(meshOuter);
+      
+      // Hologram Orbit Node (3D mesh sphere representing the orbit node in Ring 3) - Made slightly larger (0.05 radius)
+      const orbitNode = new THREE.Mesh(
+        new THREE.SphereGeometry(0.05, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 })
+      );
+      holoGroup.add(orbitNode);
+      
+      // Smoke Particle System setup - Scaled spawn radius to match larger rings
+      const smokeParticles = [];
+      const smokeCount = 18;
+      const smokeTex = createSmokeTexture();
+      const smokeGeo = new THREE.PlaneGeometry(0.75, 0.75);
+      
+      for (let i = 0; i < smokeCount; i++) {
+        const matSmoke = new THREE.MeshBasicMaterial({
+          map: smokeTex,
+          transparent: true,
+          opacity: 0,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          side: THREE.DoubleSide
+        });
+        
+        const p = new THREE.Mesh(smokeGeo, matSmoke);
+        
+        // Distribute particle spawn positions around a circular path matching larger rings (radius 0.3 to 1.1)
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 0.3 + Math.random() * 0.8;
+        p.position.x = Math.cos(angle) * radius;
+        p.position.z = Math.sin(angle) * radius;
+        
+        // Random initial height distribution (spread out)
+        p.position.y = Math.random() * 1.5;
+        
+        // Scale and rotation
+        const scale = 0.5 + Math.random() * 0.75;
+        p.scale.set(scale, scale, 1);
+        p.rotation.z = Math.random() * Math.PI * 2;
+        
+        p.userData = {
+          angle: angle,
+          radius: radius,
+          speedY: 0.005 + Math.random() * 0.005,
+          rotSpeed: (Math.random() - 0.5) * 0.015,
+          maxHeight: 1.0 + Math.random() * 1.3,
+          initialScale: scale
+        };
+        
+        holoGroup.add(p);
+        smokeParticles.push(p);
+      }
+      
+      // Interaction & Hover Event Listeners
+      phoneContainer.addEventListener('mousemove', (e) => {
+        if (isDragging) return;
+        const rect = phoneContainer.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width - 0.5;
+        const y = (e.clientY - rect.top) / rect.height - 0.5;
+        
+        tiltY = x * 0.4;
+        tiltX = y * 0.3;
+        
+        targetRotY = baseDragRotY + tiltY;
+        targetRotX = baseDragRotX + tiltX;
+      });
+      
+      phoneContainer.addEventListener('mouseleave', () => {
+        tiltX = 0;
+        tiltY = 0;
+        if (!isDragging) {
+          targetRotY = baseDragRotY;
+          targetRotX = baseDragRotX;
+        }
+      });
+      
+      // Shared Drag Helpers
+      function handleDragStart(clientX, clientY) {
+        isDragging = true;
+        // Snap-free rotation initialization
+        baseDragRotY = phoneGroup.rotation.y;
+        baseDragRotX = phoneGroup.rotation.x;
+        targetRotY = baseDragRotY;
+        targetRotX = baseDragRotX;
+        previousMousePosition = {
+          x: clientX,
+          y: clientY
+        };
+      }
+      
+      function handleDragMove(clientX, clientY) {
+        if (!isDragging) return;
+        
+        const deltaMove = {
+          x: clientX - previousMousePosition.x,
+          y: clientY - previousMousePosition.y
+        };
+        
+        baseDragRotY += deltaMove.x * 0.007;
+        baseDragRotX += deltaMove.y * 0.007;
+        
+        // Clamp X rotation to prevent flipping upside down
+        baseDragRotX = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, baseDragRotX));
+        
+        targetRotY = baseDragRotY;
+        targetRotX = baseDragRotX;
+        
+        previousMousePosition = {
+          x: clientX,
+          y: clientY
+        };
+      }
+      
+      function handleDragEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        // Prevent snapping on release by setting baseDragRotY directly to targetRotY (no scroll spin is added in Y anymore)
+        baseDragRotY = targetRotY;
+      }
+      
+      // Mouse drag-to-rotate events
+      phoneContainer.addEventListener('mousedown', (e) => {
+        handleDragStart(e.clientX, e.clientY);
+      });
+      
+      window.addEventListener('mousemove', (e) => {
+        handleDragMove(e.clientX, e.clientY);
+      });
+      
+      window.addEventListener('mouseup', handleDragEnd);
+      
+      // Mobile touch drag-to-rotate events
+      let touchStartPos = { x: 0, y: 0 };
+      let touchIsVerticalScroll = false;
+      let touchIsHorizontalDrag = false;
+
+      phoneContainer.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          touchStartPos.x = e.touches[0].clientX;
+          touchStartPos.y = e.touches[0].clientY;
+          touchIsVerticalScroll = false;
+          touchIsHorizontalDrag = false;
+          handleDragStart(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: true });
+      
+      window.addEventListener('touchmove', (e) => {
+        if (isDragging && e.touches.length === 1) {
+          const deltaX = Math.abs(e.touches[0].clientX - touchStartPos.x);
+          const deltaY = Math.abs(e.touches[0].clientY - touchStartPos.y);
+          
+          if (!touchIsVerticalScroll && !touchIsHorizontalDrag) {
+            // Determine direction on first significant move (threshold of 6px)
+            if (deltaX > 6 || deltaY > 6) {
+              if (deltaY > deltaX) {
+                touchIsVerticalScroll = true;
+                isDragging = false; // Cancel phone rotation
+              } else {
+                touchIsHorizontalDrag = true;
+              }
+            }
+          }
+          
+          if (touchIsHorizontalDrag) {
+            if (e.cancelable) e.preventDefault();
+            handleDragMove(e.touches[0].clientX, e.touches[0].clientY);
+          }
+        }
+      }, { passive: false });
+      
+      window.addEventListener('touchend', handleDragEnd);
+      window.addEventListener('touchcancel', handleDragEnd);
+      
+
+      
+      // Page Scroll Linkage (prevent scroll up/down of phone rotation and screen content)
+      window.addEventListener('scroll', () => {
+        // Scroll linkages on the 3D phone model and its screen content have been completely removed
+      });
+      
+      // Explore in 3D click trigger (performs spin and resets perspective)
+      const explore3dBtn = document.getElementById('explore-3d-btn');
+      if (explore3dBtn) {
+        explore3dBtn.addEventListener('click', () => {
+          baseDragRotY = -0.9;
+          baseDragRotX = 0.15;
+          updateZoomForAspect(); // Dynamically determine targetZoom
+          targetUiScroll = 0;
+          
+          phoneGroup.rotation.y += Math.PI * 2;
+          phoneGroup.rotation.x += Math.PI * 2;
+        });
+      }
+      
+      // Animation Loop
+      let clock = new THREE.Clock();
+      
+      function animateThree() {
+        requestAnimationFrame(animateThree);
+        const time = clock.getElapsedTime();
+        
+        // Interpolate zoom smoothly
+        camera.position.z += (targetZoom - camera.position.z) * 0.1;
+        
+        // Smooth rotation interpolation (prevent page-scroll Y spin)
+        phoneGroup.rotation.y += (targetRotY - phoneGroup.rotation.y) * 0.08;
+        phoneGroup.rotation.x += (targetRotX - phoneGroup.rotation.x) * 0.08;
+        
+        // Floating animation
+        phoneGroup.position.y = Math.sin(time * 1.5) * 0.12;
+        
+        // Dynamic moving neon point lights for changing shine effects on the glossy display
+        reflectionLight1.position.x = Math.sin(time * 1.0) * 5;
+        reflectionLight1.position.y = Math.cos(time * 0.8) * 4;
+        
+        reflectionLight2.position.x = Math.cos(time * 1.2) * 5;
+        reflectionLight2.position.y = Math.sin(time * 1.0) * 4;
+        
+        // Rotate 3D hologram rings (flat on XZ plane, rotating local Z)
+        if (meshInner) meshInner.rotation.z += 0.003;
+        if (meshDashed) meshDashed.rotation.z -= 0.007;
+        if (meshOuter) meshOuter.rotation.z += 0.0015;
+        
+        // Animate orbit node on the outer ring
+        if (orbitNode) {
+          const orbitAngle = time * 0.6;
+          const orbitRadius = 1.41; // matches (240 / 256) * (3.0 / 2)
+          orbitNode.position.x = Math.cos(orbitAngle) * orbitRadius;
+          orbitNode.position.z = Math.sin(orbitAngle) * orbitRadius;
+          orbitNode.position.y = 0.02;
+        }
+        
+        // Animate billboarded hologram smoke particles
+        if (smokeParticles && smokeParticles.length > 0) {
+          smokeParticles.forEach(p => {
+            p.position.y += p.userData.speedY;
+            p.rotation.z += p.userData.rotSpeed;
+            
+            // Expand slightly as it rises
+            const progress = p.position.y / p.userData.maxHeight;
+            const currentScale = p.userData.initialScale * (1 + progress * 0.7);
+            p.scale.set(currentScale, currentScale, 1);
+            
+            // Fade in at bottom, fade out at top
+            if (progress < 0.25) {
+              p.material.opacity = (progress / 0.25) * 0.22;
+            } else if (progress > 0.6) {
+              p.material.opacity = (1 - (progress - 0.6) / 0.4) * 0.22;
+            } else {
+              p.material.opacity = 0.22;
+            }
+            
+            // Reset particle at max height
+            if (p.position.y >= p.userData.maxHeight) {
+              p.position.y = 0;
+              const angle = Math.random() * Math.PI * 2;
+              p.position.x = Math.cos(angle) * p.userData.radius;
+              p.position.z = Math.sin(angle) * p.userData.radius;
+              p.material.opacity = 0;
+            }
+            
+            // Billboard: always face the camera
+            p.quaternion.copy(camera.quaternion);
+          });
+        }
+        
+        // Update Canvas UI texture dynamically on every frame to support auto-scrolling
+        drawScreenUI();
+        
+        renderer.render(scene, camera);
+      }
+      
+      animateThree();
+      
+      function updateZoomForAspect() {
+        const aspect = phoneContainer.clientWidth / phoneContainer.clientHeight;
+        if (aspect < 0.75) {
+          targetZoom = 8.6; // Move camera back to fit enlarged rings on narrow screens
+        } else {
+          targetZoom = 7.5;
+        }
+      }
+      
+      // Call once initially
+      updateZoomForAspect();
+
+      // Resize support
+      window.addEventListener('resize', () => {
+        camera.aspect = phoneContainer.clientWidth / phoneContainer.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(phoneContainer.clientWidth, phoneContainer.clientHeight);
+        updateZoomForAspect();
       });
 
       // Step 1: Handle waitlist subscription request (Request Code)

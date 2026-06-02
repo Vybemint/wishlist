@@ -6,8 +6,34 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'waitlist.db');
+
+// Application Constants & Defaults
+const CONFIG = {
+  PORT: 3001,
+  SMTP_HOST: 'smtp.gmail.com',
+  SMTP_PORT: 465,
+  SMTP_SECURE: true,
+  SMTP_USER: 'mintvybe@gmail.com',
+  SMTP_PASS: '',
+  EXPORT_SECRET: 'vybemint-secret-key-2026',
+  DEFAULT_SENDER_EMAIL: 'mintvybe@gmail.com',
+  DB_NAME: 'waitlist.db'
+};
+
+const PORT = process.env.PORT || CONFIG.PORT;
+
+// Detect Vercel and Fly.io environments dynamically
+const isVercel = process.env.VERCEL === '1' || process.env.NOW_REGION;
+const isFly = process.env.FLY_APP_NAME !== undefined;
+
+let DB_PATH;
+if (isVercel) {
+  DB_PATH = `/tmp/${CONFIG.DB_NAME}`;
+} else if (isFly) {
+  DB_PATH = `/data/${CONFIG.DB_NAME}`; // Persistent volume mount path on Fly.io
+} else {
+  DB_PATH = process.env.DB_PATH || path.join(__dirname, CONFIG.DB_NAME);
+}
 
 // Middleware
 app.use(cors());
@@ -32,7 +58,7 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
         else {
           console.log('[ok] waitlist table ready');
           // Add column migration safely without data loss
-          db.run(`ALTER TABLE waitlist ADD COLUMN sender_email TEXT DEFAULT 'mintvybe@gmail.com'`, (alterErr) => {
+          db.run(`ALTER TABLE waitlist ADD COLUMN sender_email TEXT DEFAULT '${CONFIG.DEFAULT_SENDER_EMAIL}'`, (alterErr) => {
             if (alterErr && !alterErr.message.includes('duplicate column name')) {
               console.error('Migration error on waitlist:', alterErr.message);
             }
@@ -53,7 +79,7 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
         else {
           console.log('[ok] pending_verifications table ready');
           // Add column migration safely
-          db.run(`ALTER TABLE pending_verifications ADD COLUMN sender_email TEXT DEFAULT 'mintvybe@gmail.com'`, (alterErr) => {
+          db.run(`ALTER TABLE pending_verifications ADD COLUMN sender_email TEXT DEFAULT '${CONFIG.DEFAULT_SENDER_EMAIL}'`, (alterErr) => {
             if (alterErr && !alterErr.message.includes('duplicate column name')) {
               console.error('Migration error on pending_verifications:', alterErr.message);
             }
@@ -66,12 +92,12 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
 
 // Configure Nodemailer SMTP Transporter
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT) || 465,
-  secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT == 465,
+  host: process.env.SMTP_HOST || CONFIG.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT) || CONFIG.SMTP_PORT,
+  secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT == CONFIG.SMTP_PORT,
   auth: {
-    user: process.env.SMTP_USER || 'mintvybe@gmail.com',
-    pass: process.env.SMTP_PASS || ''
+    user: process.env.SMTP_USER || CONFIG.SMTP_USER,
+    pass: process.env.SMTP_PASS || CONFIG.SMTP_PASS
   }
 });
 
@@ -252,7 +278,7 @@ app.post('/api/request-verification', (req, res) => {
     // Generate code and expiration (5 mins)
     const code = generateVerificationCode();
     const expiresAt = Date.now() + 5 * 60 * 1000;
-    const senderEmail = process.env.SMTP_USER || 'mintvybe@gmail.com';
+    const senderEmail = process.env.SMTP_USER || CONFIG.DEFAULT_SENDER_EMAIL;
 
     db.serialize(() => {
       // Clear any prior pending code for this email
@@ -268,8 +294,10 @@ app.post('/api/request-verification', (req, res) => {
             return res.status(500).json({ error: 'database error' });
           }
 
-          // Output code to backend console for easy local testing
-          console.log(`[Verification Code for ${email}]: ${code}`);
+          // Output code to backend console for easy local testing (enable only for debug/development)
+          if (process.env.DEBUG === 'true' || process.env.NODE_ENV !== 'production') {
+            console.log(`[Verification Code for ${email}]: ${code}`);
+          }
 
           // Send SMTP email
           const mailOptions = {
@@ -335,7 +363,7 @@ app.post('/api/verify-code', (req, res) => {
 
     // If correct, register user in waitlist table using correct sender_email
     const timestamp = getFormattedTimestamp();
-    const senderEmail = row.sender_email || 'mintvybe@gmail.com';
+    const senderEmail = row.sender_email || CONFIG.DEFAULT_SENDER_EMAIL;
 
     db.serialize(() => {
       db.run(
@@ -363,7 +391,7 @@ app.post('/api/verify-code', (req, res) => {
 // Hidden, protected route to retrieve waitlist signups
 app.get('/api/export-hidden', (req, res) => {
   const secret = req.query.secret;
-  const SECRET_KEY = process.env.EXPORT_SECRET || 'vybemint-secret-key-2026';
+  const SECRET_KEY = process.env.EXPORT_SECRET || CONFIG.EXPORT_SECRET;
 
   if (!secret || secret !== SECRET_KEY) {
     return res.status(403).json({ error: 'unauthorized access' });

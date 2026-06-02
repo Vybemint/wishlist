@@ -7,7 +7,10 @@ const nodemailer = require('nodemailer');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const DB_PATH = path.join(__dirname, 'waitlist.db');
+
+// Use /tmp on Vercel because the root directory is read-only
+const isVercel = process.env.VERCEL === '1' || process.env.NOW_REGION;
+const DB_PATH = isVercel ? '/tmp/waitlist.db' : path.join(__dirname, 'waitlist.db');
 
 // Middleware
 app.use(cors());

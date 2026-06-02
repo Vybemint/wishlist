@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 const nodemailer = require('nodemailer');
 
 const app = express();
@@ -222,14 +223,30 @@ function getVerificationEmailHtml(code) {
 </html>`;
 }
 
-// Serve landing page
+// Serve landing page dynamically with API_BASE injected from environment variable
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  try {
+    let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+    const apiBase = process.env.API_BASE || '';
+    html = html.replace('const API_BASE = "";', `const API_BASE = "${apiBase}";`);
+    res.send(html);
+  } catch (err) {
+    console.error('Error serving index.html:', err.message);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
-// Serve separate VybeMint redesign page
+// Serve separate VybeMint redesign page dynamically with API_BASE injected
 app.get('/vybemint', (req, res) => {
-  res.sendFile(path.join(__dirname, 'vybemint.html'));
+  try {
+    let html = fs.readFileSync(path.join(__dirname, 'vybemint.html'), 'utf8');
+    const apiBase = process.env.API_BASE || '';
+    html = html.replace('const API_BASE = "";', `const API_BASE = "${apiBase}";`);
+    res.send(html);
+  } catch (err) {
+    console.error('Error serving vybemint.html:', err.message);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 // Duplicate check endpoint

@@ -22,18 +22,7 @@ const CONFIG = {
 
 const PORT = process.env.PORT || CONFIG.PORT;
 
-// Detect Vercel and Fly.io environments dynamically
-const isVercel = process.env.VERCEL === '1' || process.env.NOW_REGION;
-const isFly = process.env.FLY_APP_NAME !== undefined;
-
-let DB_PATH;
-if (isVercel) {
-  DB_PATH = `/tmp/${CONFIG.DB_NAME}`;
-} else if (isFly) {
-  DB_PATH = `/data/${CONFIG.DB_NAME}`; // Persistent volume mount path on Fly.io
-} else {
-  DB_PATH = process.env.DB_PATH || path.join(__dirname, CONFIG.DB_NAME);
-}
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, CONFIG.DB_NAME);
 
 // Middleware
 app.use(cors());

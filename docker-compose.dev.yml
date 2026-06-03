@@ -1,0 +1,9 @@
+services:
+  server:
+    build:
+      target: development
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development

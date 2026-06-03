@@ -80,13 +80,23 @@
     }
 
     .nav-btn{
-      border:1px solid var(--border);
+      border:1px solid rgba(255,255,255,0.08);
       background:rgba(255,255,255,0.03);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       color:white;
       padding:12px 20px;
       border-radius:999px;
       font-weight:600;
       cursor:pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .nav-btn:hover{
+      background:rgba(255,255,255,0.08);
+      border-color:rgba(255,255,255,0.2);
+      box-shadow: 0 4px 15px rgba(255,255,255,0.02);
+      transform: translateY(-1px);
     }
 
     .hero{
@@ -160,14 +170,55 @@
     }
 
     .waitlist-box button{
-      border:none;
+      border: 1px solid rgba(255, 255, 255, 0.12);
       padding:18px 28px;
       border-radius:18px;
       font-weight:700;
       font-size:1rem;
       color:white;
       cursor:pointer;
-      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .waitlist-box button:hover{
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.25);
+      box-shadow: 0 8px 32px rgba(255, 255, 255, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .waitlist-box button:active{
+      transform: translateY(0) scale(0.98);
+    }
+
+    .glass-submit-btn {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 18px 28px;
+      border-radius: 18px;
+      font-weight: 700;
+      font-size: 1rem;
+      color: white;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-submit-btn:hover {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.25);
+      box-shadow: 0 8px 32px rgba(255, 255, 255, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .glass-submit-btn:active {
+      transform: translateY(0) scale(0.98);
     }
 
     .stats{
@@ -408,6 +459,31 @@
       font-weight: 700;
       padding-left: 0.5rem;
     }
+
+    /* 6-Digit input styles */
+    .digit-input {
+      flex: 1;
+      min-width: 0; /* Prevents inputs from overflowing/stretching past parent limits */
+      aspect-ratio: 1;
+      text-align: center;
+      font-size: clamp(1.2rem, 3.5vw, 1.8rem);
+      font-family: monospace;
+      font-weight: 800;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      color: white;
+      outline: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .digit-input:focus {
+      border-color: #ffffff !important;
+      background: rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.3) !important;
+      transform: translateY(-2px) scale(1.05);
+    }
   </style>
 </head>
 
@@ -446,6 +522,29 @@
           <span class="spinner" style="display: none;"></span>
         </button>
       </form>
+
+      <form id="verify-form" style="display: none; flex-direction: column; width: 100%; max-width: 20rem;">
+        <div class="code-inputs" style="display: flex; gap: var(--space-sm); width: 100%; margin-bottom: var(--space-md); flex-wrap: nowrap;">
+          <input type="text" class="digit-input" maxlength="1" required autocomplete="off">
+          <input type="text" class="digit-input" maxlength="1" required autocomplete="off">
+          <input type="text" class="digit-input" maxlength="1" required autocomplete="off">
+          <input type="text" class="digit-input" maxlength="1" required autocomplete="off">
+          <input type="text" class="digit-input" maxlength="1" required autocomplete="off">
+          <input type="text" class="digit-input" maxlength="1" required autocomplete="off">
+        </div>
+        
+        <button type="submit" id="verify-submit" class="glass-submit-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+          <span class="verify-submit-text">Verify Code</span>
+          <span class="verify-spinner spinner" style="display: none;"></span>
+        </button>
+      </form>
+
+      <div id="verify-actions" style="display: none; flex-wrap: wrap; gap: var(--space-md); margin-top: var(--space-sm); font-size: clamp(0.85rem, 1vw, 0.95rem); color: var(--muted); align-items: center;">
+        <span id="resend-code-btn" style="cursor: pointer; text-decoration: underline;" class="!px-2 !py-2">Resend Code</span>
+        <span style="color: rgba(255,255,255,0.15);">|</span>
+        <span id="change-email-btn" style="cursor: pointer; text-decoration: underline;" class="!px-2 !py-2">Change Email</span>
+      </div>
+
       <!-- Message Containers (Monochrome Theme) -->
       <div id="waitlist-success" class="waitlist-msg success-msg" style="display: none;">
         <span class="msg-icon">✓</span>
@@ -457,10 +556,6 @@
       </div>
 
       <div class="stats">
-        <div class="stat">
-          <h2>12K+</h2>
-          <p>People Waiting</p>
-        </div>
 
         <div class="stat">
           <h2>4.9/5</h2>
@@ -512,77 +607,215 @@
 </div>
 
   <script>
+    const API_BASE = "https://wishlist.vybemint.api.prod.nerdsville.net";
+    const CODE_LENGTH = 6;
+
     document.addEventListener('DOMContentLoaded', () => {
-      const form = document.getElementById('waitlist-form');
+      const waitlistForm = document.getElementById('waitlist-form');
       const emailInput = document.getElementById('waitlist-email');
-      const submitBtn = document.getElementById('waitlist-submit');
-      const submitText = submitBtn.querySelector('.submit-text');
-      const spinner = submitBtn.querySelector('.spinner');
+      const waitlistSubmitBtn = document.getElementById('waitlist-submit');
+      const waitlistSubmitText = waitlistSubmitBtn.querySelector('.submit-text');
+      const waitlistSpinner = waitlistSubmitBtn.querySelector('.spinner');
+
+      const verifyForm = document.getElementById('verify-form');
+      const verifySubmitBtn = document.getElementById('verify-submit');
+      const verifySubmitText = verifySubmitBtn.querySelector('.verify-submit-text');
+      const verifySpinner = verifySubmitBtn.querySelector('.verify-spinner');
+      const verifyActions = document.getElementById('verify-actions');
+      const resendBtn = document.getElementById('resend-code-btn');
+      const changeEmailBtn = document.getElementById('change-email-btn');
+
       const successMsg = document.getElementById('waitlist-success');
       const errorMsg = document.getElementById('waitlist-error');
 
-      // SheetDB endpoint — stores waitlist submissions
-      const SHEET_URL = "https://sheetdb.io/api/v1/dye5r68mwotdw";
+      let pendingEmail = "";
 
-      // Humanize: readable timestamp for the sheet (e.g. 5/30/2026 17:02:52)
-      const getFormattedTimestamp = () => {
-        const now = new Date();
-        const pad = (n) => String(n).padStart(2, '0');
-        // Prefix quote forces Google Sheets to display as plain text, not a serial number
-        return `'${now.getMonth()+1}/${now.getDate()}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-      };
+      const digitInputs = Array.from(verifyForm.querySelectorAll('.digit-input'));
 
-      form.addEventListener('submit', async (e) => {
+      digitInputs.forEach((input, index) => {
+        input.addEventListener('input', (e) => {
+          const val = e.target.value.trim().toUpperCase();
+          e.target.value = val;
+          if (val && index < CODE_LENGTH - 1) {
+            digitInputs[index + 1].focus();
+          }
+          checkAndAutoSubmit();
+        });
+
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace') {
+            if (!input.value && index > 0) {
+              digitInputs[index - 1].focus();
+              digitInputs[index - 1].value = '';
+            } else {
+              input.value = '';
+            }
+            e.preventDefault();
+            checkAndAutoSubmit();
+          }
+        });
+
+        input.addEventListener('paste', (e) => {
+          e.preventDefault();
+          const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim().toUpperCase();
+          if (pasteData.length === CODE_LENGTH) {
+            for (let i = 0; i < CODE_LENGTH; i++) {
+              if (digitInputs[i]) {
+                digitInputs[i].value = pasteData[i];
+              }
+            }
+            digitInputs[CODE_LENGTH - 1].focus();
+            checkAndAutoSubmit();
+          }
+        });
+      });
+
+      function getVerificationCode() {
+        return digitInputs.map(input => input.value.trim()).join('');
+      }
+
+      function checkAndAutoSubmit() {
+        const fullCode = getVerificationCode();
+        if (fullCode.length === CODE_LENGTH) {
+          verifyForm.dispatchEvent(new Event('submit'));
+        }
+      }
+
+      function clearDigitInputs() {
+        digitInputs.forEach(input => input.value = '');
+      }
+
+      waitlistForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-
         successMsg.style.display = 'none';
         errorMsg.style.display = 'none';
 
         const email = emailInput.value.trim();
         if (!email) return;
 
-        // Show loading state
-        submitBtn.disabled = true;
-        submitText.textContent = "Connecting...";
-        spinner.style.display = 'inline-block';
+        waitlistSubmitBtn.disabled = true;
+        waitlistSubmitText.textContent = "Connecting...";
+        waitlistSpinner.style.display = 'inline-block';
 
         try {
-
-          // Duplicate guard — check before inserting
-          const checkResp = await fetch(`${SHEET_URL}/search?Email=${encodeURIComponent(email)}`, { method: 'GET', mode: 'cors' });
+          const checkResp = await fetch(`${API_BASE}/api/check?email=${encodeURIComponent(email)}`);
           const checkData = await checkResp.json();
-          if (Array.isArray(checkData) && checkData.length > 0) {
+          if (checkData.exists) {
             errorMsg.querySelector('.msg-text').textContent = "This email is already on our waitlist!";
             errorMsg.style.display = 'flex';
             return;
           }
 
-          // Submit to SheetDB
-          const response = await fetch(SHEET_URL, {
+          const response = await fetch(`${API_BASE}/api/request-verification`, {
             method: 'POST',
-            mode: 'cors',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: [{ Timestamp: getFormattedTimestamp(), Email: email }] })
+            body: JSON.stringify({ email })
           });
 
           const result = await response.json();
 
-          if (result.created === 1 || result.status === 'success') {
-            successMsg.querySelector('.msg-text').textContent = "You've been added to the waitlist!";
+          if (response.ok && result.success) {
+            pendingEmail = email;
+            
+            waitlistForm.style.display = 'none';
+            verifyForm.style.display = 'flex';
+            verifyActions.style.display = 'flex';
+            clearDigitInputs();
+            
+            successMsg.querySelector('.msg-text').textContent = "Verification code sent! Please check your inbox.";
             successMsg.style.display = 'flex';
-            form.reset();
+            digitInputs[0].focus();
           } else {
-            throw new Error(result.message || "Failed to process request");
+            throw new Error(result.error || "Failed to request code");
           }
         } catch (err) {
-          console.error("Submission failed:", err);
-          errorMsg.querySelector('.msg-text').textContent = "Connection failed. Please check your network or try again.";
+          errorMsg.querySelector('.msg-text').textContent = err.message || "Connection failed. Please try again.";
           errorMsg.style.display = 'flex';
         } finally {
-          submitBtn.disabled = false;
-          submitText.textContent = "Get Early Access";
-          spinner.style.display = 'none';
+          waitlistSubmitBtn.disabled = false;
+          waitlistSubmitText.textContent = "Get Early Access";
+          waitlistSpinner.style.display = 'none';
         }
+      });
+
+      verifyForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        successMsg.style.display = 'none';
+        errorMsg.style.display = 'none';
+
+        const code = getVerificationCode();
+        if (code.length !== CODE_LENGTH || !pendingEmail) return;
+
+        verifySubmitBtn.disabled = true;
+        verifySubmitText.textContent = "Verifying...";
+        verifySpinner.style.display = 'inline-block';
+
+        try {
+          const response = await fetch(`${API_BASE}/api/verify-code`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: pendingEmail, code })
+          });
+
+          const result = await response.json();
+
+          if (response.status === 201 && result.created === 1) {
+            verifyForm.style.display = 'none';
+            verifyActions.style.display = 'none';
+            
+            successMsg.querySelector('.msg-text').textContent = "You've been added to the waitlist! Verification successful.";
+            successMsg.style.display = 'flex';
+            
+            waitlistForm.reset();
+            clearDigitInputs();
+            pendingEmail = "";
+          } else {
+            throw new Error(result.error || "Verification failed");
+          }
+        } catch (err) {
+          errorMsg.querySelector('.msg-text').textContent = err.message || "Invalid or expired verification code.";
+          errorMsg.style.display = 'flex';
+        } finally {
+          verifySubmitBtn.disabled = false;
+          verifySubmitText.textContent = "Verify Code";
+          verifySpinner.style.display = 'none';
+        }
+      });
+
+      resendBtn.addEventListener('click', async () => {
+        if (!pendingEmail) return;
+        successMsg.style.display = 'none';
+        errorMsg.style.display = 'none';
+
+        try {
+          const response = await fetch(`${API_BASE}/api/request-verification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: pendingEmail })
+          });
+          const result = await response.json();
+          if (response.ok && result.success) {
+            successMsg.querySelector('.msg-text').textContent = "A new verification code has been sent.";
+            successMsg.style.display = 'flex';
+            clearDigitInputs();
+            digitInputs[0].focus();
+          } else {
+            throw new Error(result.error || "Failed to resend code");
+          }
+        } catch (err) {
+          errorMsg.querySelector('.msg-text').textContent = err.message || "Failed to resend code. Please try again.";
+          errorMsg.style.display = 'flex';
+        }
+      });
+
+      changeEmailBtn.addEventListener('click', () => {
+        successMsg.style.display = 'none';
+        errorMsg.style.display = 'none';
+        verifyForm.style.display = 'none';
+        verifyActions.style.display = 'none';
+        
+        waitlistForm.style.display = 'flex';
+        emailInput.focus();
       });
     });
   </script>

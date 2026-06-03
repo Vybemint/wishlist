@@ -1,0 +1,6 @@
+node_modules/
+.env
+waitlist.db
+vybemint.html
+*.glb
+img/

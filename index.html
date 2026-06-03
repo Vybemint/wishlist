@@ -460,7 +460,7 @@
       padding-left: 0.5rem;
     }
 
-
+    /* 6-Digit input styles */
     .digit-input {
       flex: 1;
       min-width: 0; /* Prevents inputs from overflowing/stretching past parent limits */
@@ -607,6 +607,9 @@
 </div>
 
   <script>
+    const API_BASE = "https://wishlist.vybemint.api.prod.nerdsville.net";
+    const CODE_LENGTH = 6;
+
     document.addEventListener('DOMContentLoaded', () => {
       const waitlistForm = document.getElementById('waitlist-form');
       const emailInput = document.getElementById('waitlist-email');
@@ -625,24 +628,20 @@
       const successMsg = document.getElementById('waitlist-success');
       const errorMsg = document.getElementById('waitlist-error');
 
-      const API_BASE = "";
       let pendingEmail = "";
-
 
       const digitInputs = Array.from(verifyForm.querySelectorAll('.digit-input'));
 
       digitInputs.forEach((input, index) => {
-        // Shift focus forward on typing
         input.addEventListener('input', (e) => {
           const val = e.target.value.trim().toUpperCase();
-          e.target.value = val; // enforce uppercase visually
-          if (val && index < digitInputs.length - 1) {
+          e.target.value = val;
+          if (val && index < CODE_LENGTH - 1) {
             digitInputs[index + 1].focus();
           }
           checkAndAutoSubmit();
         });
 
-        // Shift focus backward on backspace
         input.addEventListener('keydown', (e) => {
           if (e.key === 'Backspace') {
             if (!input.value && index > 0) {
@@ -656,17 +655,16 @@
           }
         });
 
-        // Paste support: splits pasted string across the inputs
         input.addEventListener('paste', (e) => {
           e.preventDefault();
           const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim().toUpperCase();
-          if (pasteData.length === 6) {
-            for (let i = 0; i < 6; i++) {
+          if (pasteData.length === CODE_LENGTH) {
+            for (let i = 0; i < CODE_LENGTH; i++) {
               if (digitInputs[i]) {
                 digitInputs[i].value = pasteData[i];
               }
             }
-            digitInputs[5].focus();
+            digitInputs[CODE_LENGTH - 1].focus();
             checkAndAutoSubmit();
           }
         });
@@ -678,17 +676,15 @@
 
       function checkAndAutoSubmit() {
         const fullCode = getVerificationCode();
-        if (fullCode.length === 6) {
+        if (fullCode.length === CODE_LENGTH) {
           verifyForm.dispatchEvent(new Event('submit'));
         }
       }
 
-      // Reset digit input fields
       function clearDigitInputs() {
         digitInputs.forEach(input => input.value = '');
       }
 
-      // Step 1: Handle waitlist subscription request (Request Code)
       waitlistForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         successMsg.style.display = 'none';
@@ -697,13 +693,11 @@
         const email = emailInput.value.trim();
         if (!email) return;
 
-        // Show loading state
         waitlistSubmitBtn.disabled = true;
         waitlistSubmitText.textContent = "Connecting...";
         waitlistSpinner.style.display = 'inline-block';
 
         try {
-          // Check for existing active registration first to ensure redundancy
           const checkResp = await fetch(`${API_BASE}/api/check?email=${encodeURIComponent(email)}`);
           const checkData = await checkResp.json();
           if (checkData.exists) {
@@ -712,7 +706,6 @@
             return;
           }
 
-          // Request verification code to SMTP
           const response = await fetch(`${API_BASE}/api/request-verification`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -724,7 +717,6 @@
           if (response.ok && result.success) {
             pendingEmail = email;
             
-            // Transition form UI: hide waitlist form, show verification code form
             waitlistForm.style.display = 'none';
             verifyForm.style.display = 'flex';
             verifyActions.style.display = 'flex';
@@ -746,14 +738,13 @@
         }
       });
 
-      // Step 2: Handle code verification
       verifyForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         successMsg.style.display = 'none';
         errorMsg.style.display = 'none';
 
         const code = getVerificationCode();
-        if (code.length !== 6 || !pendingEmail) return;
+        if (code.length !== CODE_LENGTH || !pendingEmail) return;
 
         verifySubmitBtn.disabled = true;
         verifySubmitText.textContent = "Verifying...";
@@ -769,7 +760,6 @@
           const result = await response.json();
 
           if (response.status === 201 && result.created === 1) {
-            // Success: hide verify UI and show permanent success message
             verifyForm.style.display = 'none';
             verifyActions.style.display = 'none';
             
@@ -792,7 +782,6 @@
         }
       });
 
-      // Handle Resend Code
       resendBtn.addEventListener('click', async () => {
         if (!pendingEmail) return;
         successMsg.style.display = 'none';
@@ -819,7 +808,6 @@
         }
       });
 
-      // Handle Change Email
       changeEmailBtn.addEventListener('click', () => {
         successMsg.style.display = 'none';
         errorMsg.style.display = 'none';

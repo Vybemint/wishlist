@@ -3,39 +3,32 @@ const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 const nodemailer = require('nodemailer');
 
 const app = express();
 
-// Application Constants & Defaults
 const CONFIG = {
-  PORT: 3001,
-  SMTP_HOST: 'smtp.gmail.com',
-  SMTP_PORT: 465,
-  SMTP_SECURE: true,
-  SMTP_USER: 'mintvybe@gmail.com',
-  SMTP_PASS: '',
-  EXPORT_SECRET: 'vybemint-secret-key-2026',
-  DEFAULT_SENDER_EMAIL: 'mintvybe@gmail.com',
-  DB_NAME: 'waitlist.db'
+  PORT: parseInt(process.env.PORT) || 3001,
+  SMTP_HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
+  SMTP_PORT: parseInt(process.env.SMTP_PORT) || 465,
+  SMTP_SECURE: process.env.SMTP_SECURE ? (process.env.SMTP_SECURE === 'true') : true,
+  SMTP_USER: process.env.SMTP_USER || 'mintvybe@gmail.com',
+  SMTP_PASS: process.env.SMTP_PASS || '',
+  EXPORT_SECRET: process.env.EXPORT_SECRET || 'vybemint-secret-key-2026',
+  DEFAULT_SENDER_EMAIL: process.env.SMTP_USER || 'mintvybe@gmail.com',
+  DB_PATH: process.env.DB_PATH || path.join(__dirname, 'waitlist.db')
 };
 
-const PORT = process.env.PORT || CONFIG.PORT;
-
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, CONFIG.DB_NAME);
-
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Initialize Database
-const db = new sqlite3.Database(DB_PATH, (err) => {
+const db = new sqlite3.Database(CONFIG.DB_PATH, (err) => {
   if (err) {
     console.error('Database connection error:', err.message);
   } else {
     db.serialize(() => {
-      // Main waitlist table
       db.run(`
         CREATE TABLE IF NOT EXISTS waitlist (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,8 +38,6 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
       `, (err) => {
         if (err) console.error('Error creating waitlist table:', err.message);
         else {
-          console.log('[ok] waitlist table ready');
-          // Add column migration safely without data loss
           db.run(`ALTER TABLE waitlist ADD COLUMN sender_email TEXT DEFAULT '${CONFIG.DEFAULT_SENDER_EMAIL}'`, (alterErr) => {
             if (alterErr && !alterErr.message.includes('duplicate column name')) {
               console.error('Migration error on waitlist:', alterErr.message);
@@ -55,7 +46,6 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
         }
       });
 
-      // Pending verifications table for email validation flow
       db.run(`
         CREATE TABLE IF NOT EXISTS pending_verifications (
           email TEXT NOT NULL UNIQUE,
@@ -66,8 +56,6 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
       `, (err) => {
         if (err) console.error('Error creating pending_verifications table:', err.message);
         else {
-          console.log('[ok] pending_verifications table ready');
-          // Add column migration safely
           db.run(`ALTER TABLE pending_verifications ADD COLUMN sender_email TEXT DEFAULT '${CONFIG.DEFAULT_SENDER_EMAIL}'`, (alterErr) => {
             if (alterErr && !alterErr.message.includes('duplicate column name')) {
               console.error('Migration error on pending_verifications:', alterErr.message);
@@ -79,18 +67,16 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
   }
 });
 
-// Configure Nodemailer SMTP Transporter
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || CONFIG.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT) || CONFIG.SMTP_PORT,
-  secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT == CONFIG.SMTP_PORT,
+  host: CONFIG.SMTP_HOST,
+  port: CONFIG.SMTP_PORT,
+  secure: CONFIG.SMTP_SECURE,
   auth: {
-    user: process.env.SMTP_USER || CONFIG.SMTP_USER,
-    pass: process.env.SMTP_PASS || CONFIG.SMTP_PASS
+    user: CONFIG.SMTP_USER,
+    pass: CONFIG.SMTP_PASS
   }
 });
 
-// Helper: Generate 6-digit alphanumeric code (mix of capital alphabets and numbers)
 function generateVerificationCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let code = '';
@@ -100,7 +86,6 @@ function generateVerificationCode() {
   return code;
 }
 
-// Humanize: readable date formatting
 function getFormattedTimestamp() {
   const now = new Date();
   const month = now.getMonth() + 1;
@@ -115,7 +100,6 @@ function getFormattedTimestamp() {
   return `${month}/${day}/${year} ${hours}:${minutes}:${seconds}`;
 }
 
-// Attractive Monochrome email template
 function getVerificationEmailHtml(code) {
   return `<!DOCTYPE html>
 <html>
@@ -221,17 +205,10 @@ function getVerificationEmailHtml(code) {
 </html>`;
 }
 
-// Healthcheck
-app.get('/health', (req, res) => {
-  db.get('SELECT 1', (err) => {
-    if (err) {
-      return res.status(503).json({ status: 'unhealthy' });
-    }
-    res.json({ status: 'healthy' });
-  });
+app.get('/', (req, res) => {
+  res.json({ status: 'ok' });
 });
 
-// Duplicate check endpoint
 app.get('/api/check', (req, res) => {
   const email = (req.query.email || '').trim().toLowerCase();
   if (!email) {
@@ -247,14 +224,12 @@ app.get('/api/check', (req, res) => {
   });
 });
 
-// Step 1: Request verification email
 app.post('/api/request-verification', (req, res) => {
   const email = (req.body.email || '').trim().toLowerCase();
   if (!email || !email.includes('@')) {
     return res.status(400).json({ error: 'invalid email' });
   }
 
-  // Double check duplicates first
   db.get('SELECT id FROM waitlist WHERE LOWER(email) = ?', [email], (err, row) => {
     if (err) {
       console.error(err.message);
@@ -264,16 +239,13 @@ app.post('/api/request-verification', (req, res) => {
       return res.status(409).json({ error: 'already_registered' });
     }
 
-    // Generate code and expiration (5 mins)
     const code = generateVerificationCode();
     const expiresAt = Date.now() + 5 * 60 * 1000;
-    const senderEmail = process.env.SMTP_USER || CONFIG.DEFAULT_SENDER_EMAIL;
+    const senderEmail = CONFIG.SMTP_USER;
 
     db.serialize(() => {
-      // Clear any prior pending code for this email
       db.run('DELETE FROM pending_verifications WHERE LOWER(email) = ?', [email]);
 
-      // Save code along with sender_email
       db.run(
         'INSERT INTO pending_verifications (email, code, sender_email, expires_at) VALUES (?, ?, ?, ?)',
         [email, code, senderEmail, expiresAt],
@@ -283,12 +255,10 @@ app.post('/api/request-verification', (req, res) => {
             return res.status(500).json({ error: 'database error' });
           }
 
-          // Output code to backend console for easy local testing (enable only for debug/development)
           if (process.env.DEBUG === 'true' || process.env.NODE_ENV !== 'production') {
             console.log(`[Verification Code for ${email}]: ${code}`);
           }
 
-          // Send SMTP email
           const mailOptions = {
             from: `"Vybemint" <${senderEmail}>`,
             to: email,
@@ -309,7 +279,6 @@ app.post('/api/request-verification', (req, res) => {
   });
 });
 
-// Step 2: Verify code and register email to waitlist
 app.post('/api/verify-code', (req, res) => {
   const email = (req.body.email || '').trim().toLowerCase();
   const code = (req.body.code || '').trim().toUpperCase();
@@ -328,19 +297,16 @@ app.post('/api/verify-code', (req, res) => {
       return res.status(400).json({ error: 'No verification request found for this email.' });
     }
 
-    // Expiry check
     if (Date.now() > row.expires_at) {
       db.run('DELETE FROM pending_verifications WHERE LOWER(email) = ?', [email]);
       return res.status(400).json({ error: 'Verification code expired. Please request a new one.' });
     }
 
-    // Attempt count check (brute force mitigation)
     if (row.attempts >= 5) {
       db.run('DELETE FROM pending_verifications WHERE LOWER(email) = ?', [email]);
       return res.status(400).json({ error: 'Too many incorrect attempts. Please request a new code.' });
     }
 
-    // Verify code
     if (row.code !== code) {
       const newAttempts = row.attempts + 1;
       db.run('UPDATE pending_verifications SET attempts = ? WHERE LOWER(email) = ?', [newAttempts, email]);
@@ -350,7 +316,6 @@ app.post('/api/verify-code', (req, res) => {
       });
     }
 
-    // If correct, register user in waitlist table using correct sender_email
     const timestamp = getFormattedTimestamp();
     const senderEmail = row.sender_email || CONFIG.DEFAULT_SENDER_EMAIL;
 
@@ -368,7 +333,6 @@ app.post('/api/verify-code', (req, res) => {
             return res.status(500).json({ error: 'database error' });
           }
 
-          // Success: delete pending verification record
           db.run('DELETE FROM pending_verifications WHERE LOWER(email) = ?', [email]);
           res.status(201).json({ created: 1 });
         }
@@ -377,10 +341,9 @@ app.post('/api/verify-code', (req, res) => {
   });
 });
 
-// Hidden, protected route to retrieve waitlist signups
 app.get('/api/export-hidden', (req, res) => {
   const secret = req.query.secret;
-  const SECRET_KEY = process.env.EXPORT_SECRET || CONFIG.EXPORT_SECRET;
+  const SECRET_KEY = CONFIG.EXPORT_SECRET;
 
   if (!secret || secret !== SECRET_KEY) {
     return res.status(403).json({ error: 'unauthorized access' });
@@ -392,7 +355,6 @@ app.get('/api/export-hidden', (req, res) => {
       return res.status(500).json({ error: 'database error' });
     }
     
-    // Support JSON or plain CSV representation
     if (req.query.format === 'csv') {
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', 'attachment; filename=waitlist.csv');
@@ -406,6 +368,6 @@ app.get('/api/export-hidden', (req, res) => {
   });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[ok] Server running -> http://localhost:${PORT}`);
+app.listen(CONFIG.PORT, '0.0.0.0', () => {
+  console.log(`[ok] Server running -> http://localhost:${CONFIG.PORT}`);
 });
